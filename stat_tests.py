@@ -279,7 +279,7 @@ def fit_regression(df: pd.DataFrame, response: str, max_vars: int=5, testsize: f
     print(df.dtypes)
     if interaction:
         df = gen_interaction_df(df, response)
-
+    
     df_train, df_test = train_test_split(df, test_size=testsize, random_state=42)
 
     if interaction:
@@ -301,9 +301,9 @@ def fit_regression(df: pd.DataFrame, response: str, max_vars: int=5, testsize: f
         }
 
 
-param_path = "/home/jg/Documents/work/equinor/Equinor_R_models/equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/parameters100realizations.parquet"
-ts_path = "/home/jg/Documents/work/equinor/Equinor_R_models/equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/response_timeseries_100realizations.parquet"
-inplace_volumes_path = "/home/jg/Documents/work/equinor/Equinor_R_models/equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/response_grid_volumes_100realizations.parquet"
+param_path = "equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/parameters100realizations.parquet"
+ts_path = "equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/response_timeseries_100realizations.parquet"
+inplace_volumes_path = "equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/response_grid_volumes_100realizations.parquet"
 
 
 ip_filters = {"ENSEMBLE": "iter-0",
@@ -361,11 +361,9 @@ ts_filtered = filter_timeseries(param_df=para_df,
                                 #params_include=parameters_include
                                 )
 
-#print(ts_filtered.head())
-#print(ts_filtered.mean(axis=0))
-#print(ts_filtered.std())
-#print(col_to_catagorical(df=ts_filtered, column="FWL", levels=3))
-interaction_dict = fit_regression(col_to_catagorical(ts_filtered, "FWL", 3), ts_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=True)
+
+fit_regression(col_to_catagorical(ts_filtered, "FWL", 3), ts_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=False)
+fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=True)
 # interaction_dict_ip = fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=True)
 
 
