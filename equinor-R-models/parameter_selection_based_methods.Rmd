@@ -1,0 +1,81 @@
+---
+title: "Compulsory Exercise 3"
+author: Martina Hall, Michail Spitieris, Stefanie Muff, Department of Mathematical
+  Sciences, NTNU
+date: 'Hand out date: April 14, 2020'
+output:
+  # html_document:
+  #   df_print: paged
+  #   toc: no
+  #   toc_depth: '2'
+  pdf_document:
+    toc: no
+    toc_depth: '2'
+subtitle: TMA4268 Statistical Learning V2020
+urlcolor: blue
+bibliography: refs.bib
+---
+
+
+
+<!-- rmarkdown::render("RecEx2-sol.Rmd","all",encoding="UTF-8") -->
+<!-- rmarkdown::render("RecEx2-sol.Rmd","html_document",encoding="UTF-8") -->
+<!-- rmarkdown::render("RecEx2-sol.Rmd","pdf_document",encoding="UTF-8") -->
+
+Last changes: 13.04.2020
+
+---
+
+**The submission deadline is Sunday, 3. May 2020, 23:59h using Blackboard**
+
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = TRUE,tidy=TRUE,message=FALSE,warning=FALSE,strip.white=TRUE,prompt=FALSE,
+                      cache=TRUE, size="scriptsize",fig.width=4, fig.height=3,fig.align = "center")
+```
+
+
+# Introduction
+
+Maximal score is 50 points. You need a score of 25/50 for the exercise to be approved. Your score will make up 50% points of your final grade.
+
+
+## Supervision
+
+This project replaces the exam that you would have had to complete individually, thus we do not offer supervision as for compulsory 1 and 2. This avoids also that some students get advantages over others.
+
+
+## Practical issues
+
+* **You work alone on this project.** 
+* **Your submitted pdf MUST NOT HAVE MORE THAN 14 pages! This is a requirement.** Any additional pages **will not be corrected**. Please only report the things that we ask for. For example, for single/multiple choice questions, only report the answers, as we do not grade your explanations in these cases. 
+* Remember to write your name on top of your submission.
+* The exercise should be handed in as **one R Markdown file and a pdf-compiled version** of the R Markdown file (if you are not able to produce a pdf-file directly please make an html-file, open it in your browser and save as pdf - no, not landscape - but portrait please). We will read the pdf-file and use the Rmd file in case we need to check details in your submission.
+* Please do not include all the text from this file (that you are reading now) - we want your R code, plots and written solutions - use the same template as for compulsory 1 (https://wiki.math.ntnu.no/tma4268/2020v/subpage6).
+* Please save us time and do NOT submit word or zip, and do not submit only the Rmd. This only results in extra work for us!
+
+## R packages
+
+You need to install the following packages in R to run the code in this file.
+
+
+```{r,eval=FALSE,echo=TRUE}
+install.packages("knitr") #probably already installed
+install.packages("rmarkdown") #probably already installed
+install.packages("ggplot2") #plotting with ggplot
+install.packages("ISLR")
+intall.packages("boot")
+install.packages("MASS")
+install.packages("FactoMineR",dependencies = TRUE)
+install.packages("factoextra")
+install.packages("ggfortify")
+install.packages("glmnet")
+install.packages("tree")
+install.packages("randomForest")
+install.packages("gbm")
+install.packages("ggfortify")
+install.packages("keras")
+install.packages("pls")
+install.packages("gam")
+```
