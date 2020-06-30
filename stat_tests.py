@@ -1,12 +1,12 @@
 import pandas as pd
 # import numpy as np
 import statsmodels.formula.api as smf
-import statsmodels.api as sm
 from pathlib import Path
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import PolynomialFeatures
-from statsmodels.regression import linear_model
-from functools import partial
+import plotly as ply
+import plotly.graph_objects as go
+import webviz_core_components as wcc
+
 
 def load_data(parameter_path: Path = None,
               timeseries_path: Path = None,
@@ -209,36 +209,10 @@ def gen_interaction_df(df: pd.DataFrame, response: str, degree: int=2, inter_onl
     return interaction_df.join(df[response])
 
 
-def gen_categoricals(df: pd.DataFrame=None,columns: list=None, response: str=None, levels: int=2):
-    # skal sansynligvis ikke brukes,
-    # roter til med multicolinearitet og hvilke som ska evt være numeriske
-    pass
-    """
-    #means = df.mean()
-    #stds = df.std()
-    df_resp = df[response]
-    df = df.drop(columns=response)
-    df - df.mean()
-    def triple_category(val, low=, high):
-        if val < low:
-            return "low"
-        elif: low<val<high:
-            return "med"
-        else:
-            return "high"
-    if levels == 2:
-        df = df.applymap(lambda x: "high" if x>0 else "low")
-        for col in df.columns:
-            df[col] = df[col].astype("category")
-            print(df[col].head())
-        return df.join(df_resp)
-    elif levels == 3:
-        df = df.applymap(triple_category)
-        df = 
-    """
-    
+
 
 def col_to_catagorical(df: pd.DataFrame,column: str, levels: int=2):
+    
     col= df[column]
     colmean= col.mean()
     colstd = col.std()
@@ -259,7 +233,12 @@ def col_to_catagorical(df: pd.DataFrame,column: str, levels: int=2):
         df[column] = col.astype("category")
     return df
 
-def fit_regression(df: pd.DataFrame, response: str, max_vars: int=5, testsize: float=0.25, interaction: bool=False):
+def fit_regression(
+    df: pd.DataFrame,
+    response: str,
+    max_vars: int=5,
+    interaction: bool=False
+    ):
     """ ### Function for fiting a linear regression model with forward stepwise modelselection
 
         **Note** highly correlated parameters should be removed, especially copied variables and transformed copies.  
@@ -276,29 +255,17 @@ def fit_regression(df: pd.DataFrame, response: str, max_vars: int=5, testsize: f
 
         interaction: boolean, for activating interaction, if flaged will genereate a a model with variables of polynomial degree 2 with cross terms
     """
-    print(df.dtypes)
+    
     if interaction:
         df = gen_interaction_df(df, response)
-    
-    df_train, df_test = train_test_split(df, test_size=testsize, random_state=42)
-
-    if interaction:
-        model = forward_selected_interaction(df_train, response, maxvars=max_vars)
+        model = forward_selected_interaction(df, response, maxvars=max_vars)
     else:
-        model = forward_selected(df_train, response, maxvars=max_vars) 
+        model = forward_selected(df, response, maxvars=max_vars) 
 
-    test_pred = model.predict(df_test.drop(columns=response))
-    test_meme_square_error = sum((test_pred - df_test[response]) ** 2) / len(df_test[response])
-    print(model.summary())
-    print(sm.stats.anova_lm(model, typ=2))
-    return {
-        "model": model,
-        "train_mse": model.mse_total,
-        "test_mse": test_meme_square_error,
-        "model_predictions": model.get_prediction(df_test.drop(columns=response)),
-        "test_y_values": df_test[response],
-        "pvalues": model.pvalues
-        }
+    #print(model.summary())
+    #print(sm.stats.anova_lm(model, typ=2))
+    #print(model.pvalues.values)
+    return model
 
 
 param_path = "equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/parameters100realizations.parquet"
@@ -362,11 +329,54 @@ ts_filtered = filter_timeseries(param_df=para_df,
                                 )
 
 
-fit_regression(col_to_catagorical(ts_filtered, "FWL", 3), ts_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=False)
-fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=True)
+
+ip_model = fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, interaction=True)
 # interaction_dict_ip = fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=True)
 
 
 # Implement higher degree interaction, no polynomials
 # Implement Discrete variables for interaction
 # Implement
+def make_p_values_plot(model):
+    """ Sorting the dictionary in ascending order and making lists for parameters and p-values """
+    p_sorted = model.pvalues.sort_values()
+    parameters = p_sorted.index
+    values = p_sorted.values
+    print(parameters)
+    print(values)
+    print(p_sorted)
+    """ Making an array for the corresponding colors """
+    
+
+    """ Making the bar chart plot """
+    fig = go.Figure([
+        go.Bar(
+            x=parameters,
+            y=values,
+        marker_color=["#FF1243" if val<0.05 else "slategray" for val in values])])
+    fig.update_layout(
+        yaxis=dict(range=[0,1], title=f'p-values'), 
+        xaxis=dict(title='Parameters'),
+        title='P-values for the key parameter combination',
+        autosize=False,
+        width=800,
+        height=600,
+        )
+
+    """ Adding a line at p = 0.05 """
+    fig.add_shape(
+        type='line', 
+        y0=0.05, 
+        y1=0.05,
+        x0=-0.5,
+        x1=len(values)-0.5,
+        xref='x',
+        line=dict(
+            color='#222A2A',
+            width=2
+        )
+    )
+    return fig
+
+ip_fig = make_p_values_plot(ip_model)
+ip_fig.show()
