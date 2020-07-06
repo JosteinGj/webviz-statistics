@@ -1,12 +1,12 @@
 import pandas as pd
-# import numpy as np
+import numpy as np
 import statsmodels.formula.api as smf
-from pathlib import Path
+
 from sklearn.preprocessing import PolynomialFeatures
 import plotly as ply
 import plotly.graph_objects as go
 import webviz_core_components as wcc
-
+from pathlib import Path
 
 def load_data(parameter_path: Path = None,
               timeseries_path: Path = None,
@@ -209,6 +209,27 @@ def gen_interaction_df(df: pd.DataFrame, response: str, degree: int=2, inter_onl
     return interaction_df.join(df[response])
 
 
+def make_p_values_plot(model):
+    """ Sorting the dictionary in ascending order and making lists for parameters and p-values """
+    p_sorted = model.pvalues.sort_values()
+    parameters = p_sorted.index
+    values = p_sorted.values
+    print(parameters)
+    print(values)
+    print(p_sorted)
+    colors = ["#FF1243" if val<0.05 else "slategray" for val in values]
+    x_vals = np.arange(-1,len(values)+1)
+    """ testing dict things """
+    dict_fig = dict(
+        {"data": [
+                {
+                    "type": "bar",
+                    "x": parameters,
+                    "y": values,
+                    "marker_color": colors
+                }], 
+        })
+    return go.Figure(dict_fig)
 
 
 def col_to_catagorical(df: pd.DataFrame,column: str, levels: int=2):
@@ -233,10 +254,11 @@ def col_to_catagorical(df: pd.DataFrame,column: str, levels: int=2):
         df[column] = col.astype("category")
     return df
 
+
 def fit_regression(
     df: pd.DataFrame,
     response: str,
-    max_vars: int=5,
+    max_vars: int=9,
     interaction: bool=False
     ):
     """ ### Function for fiting a linear regression model with forward stepwise modelselection
@@ -262,10 +284,34 @@ def fit_regression(
     else:
         model = forward_selected(df, response, maxvars=max_vars) 
 
-    #print(model.summary())
+    print(model.summary())
     #print(sm.stats.anova_lm(model, typ=2))
     #print(model.pvalues.values)
     return model
+
+
+def col_percentile(df: pd.DataFrame, column: str, percentile: int):
+    col = df[column].sort_values()
+    bottom_index = int((100 - percentile) * len(col) / 100)
+    top_index = int(percentile * len(col) / 100)
+
+
+    col[top_index:] = "high"
+    col[:bottom_index] = "low"
+    col[bottom_index:top_index] = "middle"
+    df[column] = col.astype("category")
+    return df
+
+
+def df_to_discrete(df: pd.DataFrame, percentile: int=90):
+    for col in df.columns:
+        df = col_percentile(df, col, 90)
+    return df
+
+def anova(df: pd.DataFrame, grouping_parameters: list):
+    groups = df.groupby("FWL")
+    print("grouped", groups)
+
 
 
 param_path = "equinor-R-models/data files/100 realizations, 4 iterations (ensembles)/parameters100realizations.parquet"
@@ -289,12 +335,12 @@ ts_filters = {"ENSEMBLE": "iter-0",
 
 parameter_filters = [
     'RMSGLOBPARAMS_FWL',
-    'MULTFLT_F1',
-    'MULTFLT_F2',
-    'MULTFLT_F3',
-    'MULTFLT_F4',
-    'MULTFLT_F5',
-    'MULTZ_MIDREEK',
+    'MULTFLT_MULTFLT_F1',
+    'MULTFLT_MULTFLT_F2',
+    'MULTFLT_MULTFLT_F3',
+    'MULTFLT_MULTFLT_F4',
+    'MULTFLT_MULTFLT_F5',
+    'MULTZ_MULTZ_MIDREEK',
     'INTERPOLATE_RELPERM_INTERPOLATE_GO',
     'INTERPOLATE_RELPERM_INTERPOLATE_WO',
     'LOG10_MULTFLT_MULTFLT_F1',
@@ -327,56 +373,24 @@ ts_filtered = filter_timeseries(param_df=para_df,
                                 params_exclude=parameter_filters,
                                 #params_include=parameters_include
                                 )
+parameters = para_df.columns
 
 
 
-ip_model = fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, interaction=True)
+#ip_model = fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, interaction=True)
 # interaction_dict_ip = fit_regression(ip_filtered, ip_filters["RESPONSE"], max_vars=9, testsize=0.1, interaction=True)
 
 
 # Implement higher degree interaction, no polynomials
 # Implement Discrete variables for interaction
 # Implement
-def make_p_values_plot(model):
-    """ Sorting the dictionary in ascending order and making lists for parameters and p-values """
-    p_sorted = model.pvalues.sort_values()
-    parameters = p_sorted.index
-    values = p_sorted.values
-    print(parameters)
-    print(values)
-    print(p_sorted)
-    """ Making an array for the corresponding colors """
-    
+discrete_df = df_to_discrete(ip_filtered, 90)
+print(anova(discrete_df,["FWL"]))
 
-    """ Making the bar chart plot """
-    fig = go.Figure([
-        go.Bar(
-            x=parameters,
-            y=values,
-        marker_color=["#FF1243" if val<0.05 else "slategray" for val in values])])
-    fig.update_layout(
-        yaxis=dict(range=[0,1], title=f'p-values'), 
-        xaxis=dict(title='Parameters'),
-        title='P-values for the key parameter combination',
-        autosize=False,
-        width=800,
-        height=600,
-        )
-
-    """ Adding a line at p = 0.05 """
-    fig.add_shape(
-        type='line', 
-        y0=0.05, 
-        y1=0.05,
-        x0=-0.5,
-        x1=len(values)-0.5,
-        xref='x',
-        line=dict(
-            color='#222A2A',
-            width=2
-        )
-    )
-    return fig
-
-ip_fig = make_p_values_plot(ip_model)
-ip_fig.show()
+#data=ip_filtered
+#formula = "BULK_OIL ~ FWL*MULTFLT_F5"
+#model = smf.ols(formula, data).fit()
+#print(model.summary())
+#print(col_percentile(ip_filtered, "FWL", 95))
+#ip_fig = make_p_values_plot(ip_model)
+#ip_fig.show()
